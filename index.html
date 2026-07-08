@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Qutz Payment — Secure Checkout</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --primary:#6B21A8; 
+    --primary-light:#A855F7; 
+    --accent:#00F2FE; 
+    --accent-glow: rgba(0, 242, 254, 0.3);
+    --ink:#09090E;
+    --panel-bg:#121225;
+    --panel-bg-2:#1A1A3A;
+    --gold:#F2B705;
+    --paper:#F5F1E6;
+    --grey:#8A93A6;
+    --line: rgba(0, 242, 254, 0.15);
+    --ok:#28C76F;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:'Inter', sans-serif;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(107,33,168,0.25), transparent 40%),
+      radial-gradient(circle at 85% 90%, rgba(0,242,254,0.15), transparent 45%),
+      var(--ink);
+    color:var(--paper);
+    min-height:100vh;
+    overflow-x:hidden;
+    position:relative;
+  }
+
+  .web-bg{
+    position:fixed; inset:0; z-index:0; opacity:0.12; pointer-events:none;
+  }
+  .halftone{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background-image: radial-gradient(circle, rgba(168,85,247,0.25) 1px, transparent 1.4px);
+    background-size: 14px 14px;
+    mix-blend-mode: screen;
+    opacity:0.3;
+  }
+
+  .wrap{
+    position:relative; z-index:1;
+    max-width:1080px; margin:0 auto; padding:32px 20px 80px;
+  }
+
+  header{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:36px; flex-wrap:wrap; gap:16px;
+  }
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .brand svg{ width:46px; height:46px; filter: drop-shadow(0 0 10px rgba(0,242,254,0.5));}
+  .brand-text{ font-family:'Bangers', cursive; letter-spacing:1.5px; font-size:32px; color:var(--paper); line-height:1;}
+  .brand-text span{ color:var(--accent); }
+  .status-pill{
+    display:flex; align-items:center; gap:8px;
+    background:rgba(40,199,111,0.12); border:1px solid rgba(40,199,111,0.4);
+    color:var(--ok); font-size:13px; font-weight:600; padding:8px 14px; border-radius: 999px;
+  }
+  .status-pill i{ width:8px; height:8px; border-radius:50%; background:var(--ok); box-shadow:0 0 8px var(--ok);}
+
+  .hero{
+    position:relative;
+    background: linear-gradient(135deg, var(--primary) 0%, #3B0764 70%);
+    border-radius:20px;
+    padding:34px 30px;
+    margin-bottom:20px;
+    overflow:hidden;
+    box-shadow: 0 20px 50px -20px rgba(107,33,168,0.5);
+    border: 3px solid var(--ink);
+  }
+  .hero::before{
+    content:""; position:absolute; inset:0;
+    background-image: repeating-linear-gradient(45deg, rgba(0,0,0,0.12) 0 2px, transparent 2px 14px);
+  }
+  .hero-content{ position:relative; z-index:1; max-width:640px; }
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace; font-size:12px; letter-spacing:2px;
+    text-transform:uppercase; background:var(--ink); color:var(--accent);
+    display:inline-block; padding:5px 10px; border-radius:5px; margin-bottom:14px;
+  }
+  .hero h1{
+    font-family:'Bangers', cursive; font-size:42px; letter-spacing:1px; line-height:1.05;
+    text-shadow: 3px 3px 0 var(--ink);
+    color: var(--paper);
+  }
+  .hero p{ margin-top:12px; font-size:15px; color:rgba(245,241,230,0.9); line-height:1.5; max-width:480px;}
+
+  /* Kotak Salam Dashboard Baru */
+  .dashboard-welcome {
+    background: rgba(26, 26, 58, 0.45);
+    border: 1px solid var(--line);
+    padding: 16px 20px;
+    border-radius: 14px;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--paper);
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: inset 0 0 15px rgba(0, 242, 254, 0.05);
+  }
+  .dashboard-welcome span {
+    color: var(--accent);
+    text-shadow: 0 0 10px var(--accent-glow);
+  }
+
+  .grid{ display:grid; grid-template-columns: 1fr 1.2fr; gap:24px; align-items:start; }
+  @media (max-width:800px){ .grid{ grid-template-columns:1fr; } }
+
+  .panel{
+    background: linear-gradient(180deg, var(--panel-bg-2), var(--panel-bg));
+    border:1px solid var(--line);
+    border-radius:18px;
+    padding:24px;
+    position:relative;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  }
+  .panel-title{
+    font-family:'Bangers', cursive; font-size:22px; letter-spacing:1px;
+    color:var(--gold); margin-bottom:16px; display:flex; align-items:center; gap:8px;
+  }
+
+  .item-list-scroll {
+    max-height: 380px;
+    overflow-y: auto;
+    padding-right: 8px;
+  }
+  .item-list-scroll::-webkit-scrollbar { width: 6px; }
+  .item-list-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+  .item-list-scroll::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+
+  .item-row{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:12px 0; border-bottom:1px dashed var(--line); font-size:14px;
+  }
+  .item-row .name{ font-weight:600; text-transform: uppercase; color: var(--paper); }
+  .item-row .meta{ color:var(--grey); font-size:12px; margin-top: 2px; }
+  .total-row{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-top:16px; padding-top:16px; border-top:1px solid var(--line);
+    font-family:'Bangers', cursive; font-size:24px; letter-spacing:1px;
+  }
+  .total-row .val{ color:var(--accent); text-shadow: 1px 1px 0 var(--ink); }
+
+  .web-divider{
+    height:2px; margin:18px 0;
+    background: repeating-linear-gradient(90deg, rgba(0,242,254,0.4) 0 6px, transparent 6px 12px);
+  }
+
+  .method-tabs {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .tab-btn {
+    background: rgba(9,9,14,0.6);
+    border: 1.5px solid var(--line);
+    padding: 12px 6px;
+    border-radius: 10px;
+    color: var(--grey);
+    font-weight: 700;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+  }
+  .tab-btn:hover { border-color: var(--primary-light); color: var(--paper); }
+  .tab-btn.active {
+    border-color: var(--accent);
+    background: var(--primary);
+    color: var(--paper);
+    box-shadow: 0 0 12px rgba(0, 242, 254, 0.25);
+  }
+
+  .payment-display-box {
+    background: rgba(9,9,14,0.8);
+    border: 1.5px solid var(--line);
+    border-radius: 14px;
+    padding: 24px 20px;
+    margin-bottom: 20px;
+    text-align: center;
+    min-height: 140px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+  .info-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--grey);
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+  .phone-number {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .merchant-name {
+    font-size: 14px;
+    color: var(--gold);
+    font-weight: 600;
+    margin-bottom: 12px;
+    min-height: 20px;
+  }
+  .copy-btn {
+    background: rgba(0, 242, 254, 0.1);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .copy-btn:hover { background: var(--accent); color: var(--ink); }
+
+  .qris-text-notice {
+    font-size: 14px;
+    color: var(--paper);
+    line-height: 1.5;
+    max-width: 290px;
+  }
+  .qris-text-notice span {
+    color: var(--accent);
+    font-weight: 700;
+    display: block;
+    font-size: 18px;
+    margin-top: 4px;
+    font-family: 'Bangers', cursive;
+    letter-spacing: 0.5px;
+  }
+
+  .qris-container { display: none; }
+  .qris-container.active { display: block; }
+  .transfer-container { display: none; }
+  .transfer-container.active { display: block; }
+
+  label{ display:block; font-size:12px; font-weight:700; letter-spacing:0.4px; text-transform:uppercase; color:var(--grey); margin-bottom:6px;}
+  .field{ margin-bottom:16px; }
+  input{
+    width:100%; background:rgba(9,9,14,0.7); border:1.5px solid var(--line);
+    border-radius:10px; padding:12px 14px; font-size:14px; color:var(--paper);
+    font-family:'JetBrains Mono', monospace; letter-spacing:0.5px;
+  }
+  input::placeholder{ color:rgba(245,241,230,0.25); font-family:'Inter',sans-serif;}
+  input:focus{ outline:none; border-color:var(--accent); box-shadow: 0 0 0 3px rgba(0,242,254,0.25); }
+
+  .motivation-box {
+    background: rgba(168, 85, 247, 0.08);
+    border: 1px dashed rgba(168, 85, 247, 0.4);
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 20px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--paper);
+    line-height: 1.5;
+    font-weight: 500;
+    box-shadow: inset 0 0 10px rgba(168, 85, 247, 0.05);
+  }
+  .motivation-box span {
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  .pay-btn{
+    width:100%; margin-top:8px; padding:16px; border:none; border-radius:12px;
+    background: var(--primary-light); color:var(--paper);
+    font-family:'Bangers', cursive; font-size:22px; letter-spacing:1.5px;
+    cursor:pointer; transition: transform .12s ease, background-color .15s;
+    text-shadow: 1.5px 1.5px 0 var(--ink);
+    box-shadow: 0 10px 25px -10px rgba(168,85,247,0.6);
+  }
+  .pay-btn:active{ transform: scale(0.98); }
+  .pay-btn:hover{ background: var(--primary); border: 1px solid var(--accent); }
+
+  .secure-note{ display:flex; align-items:center; gap:8px; justify-content:center; font-size:12px; color:var(--grey); margin-top:14px; }
+
+  .overlay{
+    position:fixed; inset:0; z-index:50; background:rgba(9,9,14,0.9);
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity .25s ease;
+  }
+  .overlay.show{ opacity:1; pointer-events:auto; }
+  .success-card{
+    background: linear-gradient(180deg, var(--panel-bg-2), var(--panel-bg));
+    border:2px solid var(--accent); border-radius:20px; padding:36px; text-align:center; max-width:360px;
+    transform: scale(0.9); transition: transform .25s ease;
+  }
+  .overlay.show .success-card{ transform: scale(1); }
+  .success-card .mark{
+    width:64px; height:64px; margin:0 auto 16px; border-radius:50%;
+    background: var(--ok); display:flex; align-items:center; justify-content:center;
+    font-size:32px; color:#09090E; font-weight:800;
+  }
+  .success-card h2{ font-family:'Bangers', cursive; font-size:28px; letter-spacing:1px; color:var(--paper); margin-bottom:8px;}
+  .success-card p{ font-size:14px; color:var(--grey); margin-bottom:20px; line-height:1.5;}
+  .close-btn{
+    background:transparent; border:1.5px solid var(--line); color:var(--paper);
+    padding:10px 20px; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer;
+  }
+  .close-btn:hover{ border-color:var(--accent); background:rgba(0,242,254,0.05); }
+
+  .error-text{ color:#EF4444; font-size:11px; margin-top:4px; display:none; font-weight:600;}
+  .field.invalid input{ border-color:#EF4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.2); }
+  .field.invalid .error-text{ display:block; }
+</style>
+</head>
+<body>
+
+<div class="halftone"></div>
+<svg class="web-bg" viewBox="0 0 800 800" preserveAspectRatio="xMidYMid slice">
+  <g stroke="rgba(0, 242, 254, 0.15)" stroke-width="1" fill="none">
+    <circle cx="0" cy="0" r="120"/><circle cx="0" cy="0" r="240"/><circle cx="0" cy="0" r="360"/><circle cx="0" cy="0" r="480"/>
+    <line x1="0" y1="0" x2="600" y2="0"/><line x1="0" y1="0" x2="500" y2="300"/><line x1="0" y1="0" x2="300" y2="500"/>
+  </g>
+</svg>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <svg viewBox="0 0 64 64" fill="none">
+        <circle cx="32" cy="32" r="30" fill="#6B21A8" stroke="#00F2FE" stroke-width="3"/>
+        <g stroke="#00F2FE" stroke-width="1.6" opacity="0.7">
+          <line x1="32" y1="4" x2="32" y2="60"/>
+          <line x1="4" y1="32" x2="60" y2="32"/>
+        </g>
+      </svg>
+      <div class="brand-text">Qutz<span>Payment</span></div>
+    </div>
+    <div class="status-pill"><i></i> Gateway E-Wallet Aktif</div>
+  </header>
+
+  <section class="hero">
+    <div class="hero-content">
+      <span class="eyebrow">Secure Gateway v2.5</span>
+      <h1>BAYAR INSTAN VIA E-WALLET</h1>
+      <p>Pilih metode pembayaran favoritmu, lakukan transfer atau scan, lalu isi konfirmasi di bawah ini.</p>
+    </div>
+  </section>
+
+  <!-- Wadah Baru Salam Dashboard (Menggantikan Menu Lama) -->
+  <div class="dashboard-welcome" id="dashboardWelcome">
+    👋 Menyiapkan dashboard...
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <div class="panel-title">📦 Ringkasan Pesanan</div>
+      
+      <div class="item-list-scroll">
+        <div class="item-row"><div><div class="name">Otax</div><div class="meta">Role: Member</div></div><div>Rp 40.000</div></div>
+        <div class="item-row"><div><div class="name">Ress Otax</div><div class="meta">Role: Reseller</div></div><div>Rp 60.000</div></div>
+        <div class="item-row"><div><div class="name">X Crash</div><div class="meta">Role: Member</div></div><div>Rp 20.000</div></div>
+        <div class="item-row"><div><div class="name">X Crash</div><div class="meta">Role: Reseller</div></div><div>Rp 30.000</div></div>
+        <div class="item-row"><div><div class="name">X Crash</div><div class="meta">Role: Partner (PT)</div></div><div>Rp 40.000</div></div>
+        <div class="item-row"><div><div class="name">Murbug T5</div><div class="meta">Role: Member</div></div><div>Rp 10.000</div></div>
+        <div class="item-row"><div><div class="name">Murbug T5</div><div class="meta">Role: Reseller</div></div><div>Rp 20.000</div></div>
+        <div class="item-row"><div><div class="name">Murbug T5</div><div class="meta">Role: Admin</div></div><div>Rp 30.000</div></div>
+        <div class="item-row"><div><div class="name">Murbug T5</div><div class="meta">Role: Partner (PT)</div></div><div>Rp 40.000</div></div>
+        <div class="item-row"><div><div class="name">Murbug T5</div><div class="meta">Role: Owner</div></div><div>Rp 50.000</div></div>
+        <div class="item-row"><div><div class="name">Murbug T5</div><div class="meta">Role: Mods</div></div><div>Rp 70.000</div></div>
+        <div class="item-row"><div><div class="name">Murbug T5</div><div class="meta">Role: TK</div></div><div>Rp 90.000</div></div>
+        <div class="item-row"><div><div class="name">PT F*unc T5</div><div class="meta">Version 1</div></div><div>Rp 50.000</div></div>
+        <div class="item-row"><div><div class="name">PT F*unc T5</div><div class="meta">Version 2</div></div><div>Rp 80.000</div></div>
+        <div class="item-row"><div><div class="name">SC Destroyer</div><div class="meta">Role: Member</div></div><div>Rp 25.000</div></div>
+        <div class="item-row"><div><div class="name">Panel Pterodactyl</div><div class="meta">Quota: Unlimited</div></div><div>Rp 5.000</div></div>
+        <div class="item-row"><div><div class="name">Ress Panel</div><div class="meta">Quota: Unlimited</div></div><div>Rp 10.000</div></div>
+      </div>
+
+      <div class="web-divider"></div>
+      <div class="total-row"><span>Total Keseluruhan</span><span class="val">Rp 670.000</span></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">💳 Metode Pembayaran</div>
+
+      <div class="method-tabs">
+        <button type="button" class="tab-btn active" onclick="switchMethod('dana')">DANA</button>
+        <button type="button" class="tab-btn" onclick="switchMethod('gopay')">GOPAY</button>
+        <button type="button" class="tab-btn" onclick="switchMethod('shopeepay')">SHOPEEPAY</button>
+        <button type="button" class="tab-btn" onclick="switchMethod('qris')">QRIS</button>
+      </div>
+
+      <div class="payment-display-box">
+        <div id="transferContainer" class="transfer-container active">
+          <div class="info-label" id="methodLabel">Nomor Akun DANA</div>
+          <div class="phone-number">085880781541</div>
+          <div class="merchant-name" id="merchantName"></div> 
+          <button type="button" class="copy-btn" id="copyBtn" onclick="copyNumber()">Salin Nomor</button>
+        </div>
+
+        <div id="qrisContainer" class="qris-container">
+          <div class="info-label">Metode QRIS khusus</div>
+          <div class="qris-text-notice">
+            mau bayar pake qr?
+            <span>minta aja sama qutz pasti di kasih ko</span>
+          </div>
+        </div>
+      </div>
+
+      <form id="payForm" novalidate>
+        <input type="hidden" id="selectedMethod" value="DANA">
+        
+        <div class="field" id="fieldName">
+          <label for="senderName">kalo boleh tau siapa nama lu bro?</label>
+          <input id="senderName" placeholder="Tulis nama lu di sini...">
+          <div class="error-text">Nama wajib diisi untuk verifikasi manual.</div>
+        </div>
+
+        <div class="motivation-box">
+          <span id="motivationText">Memuat pesan bijak...</span>
+        </div>
+
+        <button type="submit" class="pay-btn" id="payBtn">KONFIRMASI PEMBAYARAN</button>
+        <div class="secure-note">🔒 Data terenkripsi & diproses instan ke admin</div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="success-card">
+    <div class="mark">✓</div>
+    <h2>KONFIRMASI TERKIRIM!</h2>
+    <p>Terima kasih. Permintaan pembayaran sedang divalidasi oleh sistem admin kami. Pesanan Anda akan segera diproses.</p>
+    <button class="close-btn" id="closeBtn">Tutup Halaman</button>
+  </div>
+</div>
+
+<script>
+  let currentMethod = 'DANA';
+
+  const kataMotivasi = [
+    "Inget bro, ga semua pembeli sama, yang penting lu tetep gass terus!",
+    "Nikmati prosesnya bro, rezeki tiap orang udah ada porsinya masing-masing!",
+    "Ga semua pembeli itu sama, tetep jaga kualitas dan semangat lu ya!",
+    "Mulai aja dulu, kesuksesan besar berawal dari langkah kecil hari ini!",
+    "Fokus sama jalan lu bro, setiap usaha keras pasti bakal dibayar tuntas!"
+  ];
+
+  window.addEventListener('DOMContentLoaded', () => {
+    // 1. Setup Kata Motivasi Acak
+    const labelMotivasi = document.getElementById('motivationText');
+    const acak = kataMotivasi[Math.floor(Math.random() * kataMotivasi.length)];
+    labelMotivasi.textContent = acak;
+
+    // 2. Logika Deteksi Waktu Otomatis Untuk Salam Dashboard
+    const welcomeBox = document.getElementById('dashboardWelcome');
+    const hours = new Date().getHours();
+    let ucapan = "Selamat Malam";
+
+    if (hours >= 4 && hours < 11) {
+      ucapan = "Selamat Pagi";
+    } else if (hours >= 11 && hours < 15) {
+      ucapan = "Selamat Siang";
+    } else if (hours >= 15 && hours < 18) {
+      ucapan = "Selamat Sore";
+    }
+
+    welcomeBox.innerHTML = `👋 <span>${ucapan}</span>, Selamat Datang Kembali di Dashboard Akunmu!`;
+  });
+
+  function switchMethod(method) {
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+
+    const transferContainer = document.getElementById('transferContainer');
+    const qrisContainer = document.getElementById('qrisContainer');
+    const methodLabel = document.getElementById('methodLabel');
+    const merchantName = document.getElementById('merchantName');
+    const selectedMethodInput = document.getElementById('selectedMethod');
+
+    if (method === 'qris') {
+      transferContainer.classList.remove('active');
+      qrisContainer.classList.add('active');
+      currentMethod = 'QRIS';
+    } else {
+      qrisContainer.classList.remove('active');
+      transferContainer.classList.add('active');
+      currentMethod = method.toUpperCase();
+      methodLabel.textContent = `Nomor Akun ${currentMethod}`;
+      
+      if (method === 'dana') {
+        merchantName.textContent = ''; 
+      } else if (method === 'gopay' || method === 'shopeepay') {
+        merchantName.textContent = 'A/N qutz'; 
+      }
+    }
+    selectedMethodInput.value = currentMethod;
+  }
+
+  function copyNumber() {
+    const num = "085880781541";
+    navigator.clipboard.writeText(num).then(() => {
+      const btn = document.getElementById('copyBtn');
+      btn.textContent = 'Tersalin!';
+      btn.style.background = '#28C76F';
+      btn.style.color = '#09090E';
+      btn.style.borderColor = '#28C76F';
+      setTimeout(() => {
+        btn.textContent = 'Salin Nomor';
+        btn.style.background = 'rgba(0, 242, 254, 0.1)';
+        btn.style.color = 'var(--accent)';
+        btn.style.borderColor = 'var(--accent)';
+      }, 2000);
+    });
+  }
+
+  function setError(fieldId, isInvalid){
+    document.getElementById(fieldId).classList.toggle('invalid', isInvalid);
+  }
+
+  document.getElementById('payForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    let valid = true;
+
+    const senderName = document.getElementById('senderName');
+    if (senderName.value.trim().length < 3){ setError('fieldName', true); valid = false; } else setError('fieldName', false);
+
+    if (!valid) return;
+
+    const btn = document.getElementById('payBtn');
+    btn.textContent = 'MEMPROSES KONFIRMASI...';
+    btn.disabled = true;
+
+    setTimeout(() => {
+      document.getElementById('overlay').classList.add('show');
+      btn.textContent = 'KONFIRMASI PEMBAYARAN';
+      btn.disabled = false;
+    }, 1200);
+  });
+
+  document.getElementById('closeBtn').addEventListener('click', () => {
+    document.getElementById('overlay').classList.remove('show');
+  });
+</script>
+</body>
+</html>
